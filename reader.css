@@ -1,0 +1,52 @@
+:root {
+  --bg: #1a1a1a; --bg2: #222; --bg3: #2a2a2a;
+  --text: #ddd; --text-muted: #888; --accent: #7799bb;
+  --border: #333; --popup-bg: #2c2c2c; --popup-border: #4a6a8a;
+  --highlight: rgba(119,153,187,0.2);
+  --font-size: 1.1rem; --line-height: 2.0;
+}
+[data-theme="light"] {
+  --bg: #f8f8f8; --bg2: #fff; --bg3: #eee;
+  --text: #333; --text-muted: #888; --accent: #3366aa;
+  --border: #ddd; --popup-bg: #fff; --popup-border: #3366aa;
+  --highlight: rgba(51,102,170,0.12);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: "Hiragino Kaku Gothic ProN","Hiragino Sans",Meiryo,sans-serif;
+  font-size: var(--font-size); line-height: var(--line-height);
+  transition: background .2s, color .2s; min-height: 100vh;
+}
+#site-header {
+  position: sticky; top: 0; z-index: 200;
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+  padding: 8px 16px; display: flex; align-items: center; gap: 10px;
+}
+#header-home { color: var(--accent); text-decoration: none; font-size: 0.8rem; flex-shrink: 0; }
+#header-title { flex: 1; font-size: 0.8rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.ctrl-group { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.ctrl-btn { background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; color: var(--text); cursor: pointer; font-size: 0.75rem; padding: 4px 10px; -webkit-tap-highlight-color: transparent; }
+.size-btn { width: 30px; text-align: center; padding: 4px 0; font-size: 0.85rem; }
+#font-size-display { font-size: 0.75rem; color: var(--text-muted); min-width: 28px; text-align: center; }
+#main-wrap { max-width: 760px; margin: 0 auto; padding: 24px 16px 100px; }
+#episode-chapter { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px; }
+#episode-title { font-size: 1.15rem; font-weight: bold; padding-bottom: 14px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+#novel-body p { text-indent: 1em; margin-bottom: 0; min-height: calc(var(--line-height) * 1em); }
+#novel-body p.dialogue { text-indent: 0; }
+.word-link { color: inherit; text-decoration: none; border: none; cursor: pointer; background: none; padding: 0; font: inherit; transition: background .15s; -webkit-tap-highlight-color: transparent; }
+.word-link.active { background: var(--highlight); border-radius: 2px; }
+#word-popup { position: fixed; z-index: 500; background: var(--popup-bg); border: 1px solid var(--popup-border); border-radius: 8px; padding: 12px 14px; max-width: min(320px,90vw); box-shadow: 0 4px 20px rgba(0,0,0,.5); font-size: 0.82rem; line-height: 1.65; display: none; animation: popIn .15s ease; }
+@keyframes popIn { from{opacity:0;transform:translateY(4px) scale(.97)} to{opacity:1;transform:translateY(0) scale(1)} }
+#word-popup.visible { display: block; }
+#popup-word { font-weight: bold; font-size: 0.9rem; color: var(--accent); margin-bottom: 6px; }
+#popup-loading { color: var(--text-muted); font-style: italic; }
+#popup-close { position: absolute; top: 6px; right: 8px; background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1rem; padding: 2px 4px; }
+#nav-bar { max-width: 760px; margin: 40px auto 0; display: flex; justify-content: space-between; gap: 12px; padding: 0 16px; }
+.nav-btn { flex: 1; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.85rem; padding: 10px; text-align: center; text-decoration: none; display: block; }
+.nav-btn:empty { visibility: hidden; }
+#api-panel { position: fixed; bottom: 0; left: 0; right: 0; z-index: 300; background: var(--bg2); border-top: 1px solid var(--border); padding: 8px 16px; display: flex; align-items: center; gap: 8px; font-size: 0.78rem; }
+#api-panel label { color: var(--text-muted); white-space: nowrap; }
+#api-key-input { flex: 1; background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 0.78rem; padding: 5px 8px; min-width: 0; }
+#api-save-btn { background: var(--accent); border: none; border-radius: 4px; color: #fff; cursor: pointer; font-size: 0.78rem; padding: 5px 12px; white-space: nowrap; }
+.status-ok { color: #6a9; } .status-no { color: var(--text-muted); }
