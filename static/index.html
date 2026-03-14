@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>なろうリーダー</title>
+<style>
+:root {
+  --bg:     #131210;
+  --bg2:    #1c1a17;
+  --bg3:    #242220;
+  --text:   #ccc8c0;
+  --dim:    #625e58;
+  --sub:    #3a3830;
+  --accent: #c8a96e;
+  --border: rgba(255,255,255,.07);
+  --pop:    #1c1a17;
+  --fs: 1.08rem;
+  --lh: 2.05;
+  --serif: 'Noto Serif JP','Yu Mincho','游明朝',serif;
+  --sans:  -apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--serif);min-height:100vh}
+
+/* ── 棚（作品一覧） ── */
+#shelf-screen{min-height:100vh;padding:48px 24px 80px}
+.shelf-title{
+  font-family:var(--sans);font-size:.68rem;letter-spacing:.2em;
+  color:var(--dim);margin-bottom:24px;
+}
+
+/* Nコード入力 */
+.add-form{
+  display:flex;gap:8px;margin-bottom:36px;
+  border-bottom:1px solid var(--border);
+  padding-bottom:24px;
+}
+.ncode-input{
+  flex:1;
+  background:transparent;
+  border:none;
+  border-bottom:1px solid var(--dim);
+  color:var(--text);
+  font-family:var(--sans);
+  font-size:.9rem;
+  padding:6px 2px;
+  outline:none;
+  letter-spacing:.06em;
+}
+.ncode-input::placeholder{color:var(--dim)}
+.ncode-input:focus{border-bottom-color:var(--text)}
+.add-btn{
+  background:none;
+  border:1px solid var(--dim);
+  color:var(--text);
+  font-family:var(--sans);
+  font-size:.78rem;
+  padding:6px 16px;
+  border-radius:6px;
+  cursor:pointer;
+  white-space:nowrap;
+  flex-shrink:0;
+}
+.add-btn:active{background:var(--text);color:var(--bg)}
+.add-btn:disabled{opacity:.3;pointer-events:none}
+.add-status{
+  font-family:var(--sans);font-size:.72rem;
+  color:var(--dim);margin-bottom:16px;
+  min-height:1.2em;
+}
+.novel-card{
+  padding:20px 0;border-bottom:1px solid var(--border);
+  cursor:pointer;
+  transition:opacity .12s;
+}
+.novel-card:active{opacity:.6}
+.novel-title{font-size:1.05rem;line-height:1.5;margin-bottom:5px}
+.novel-meta{font-family:var(--sans);font-size:.7rem;color:var(--dim)}
+.empty-shelf{
+  font-family:var(--sans);font-size:.8rem;color:var(--dim);
+  padding:48px 0;line-height:2;
+}
+
+/* ── 本文画面 ── */
+#reader-screen{display:none;min-height:100vh}
+.reader-body{max-width:660px;margin:0 auto;padding:40px 22px 160px}
+
+.ep-chapter{font-family:var(--sans);font-size:.65rem;letter-spacing:.14em;color:var(--dim);margin-bottom:6px}
+.ep-title{font-size:1.1rem;font-weight:400;line-height:1.6;letter-spacing:.04em;margin-bottom:6px}
+.ep-meta{font-family:var(--sans);font-size:.65rem;color:var(--sub);margin-bottom:32px}
+
+.novel-body{font-size:var(--fs);line-height:var(--lh);letter-spacing:.04em;word-break:break-all}
+.novel-body p{text-indent:1em}
+.novel-body p.dl{text-indent:0}
+.novel-body .bl{display:block;height:calc(var(--fs)*var(--lh)*.6)}
+
+/* 語句：見た目は通常テキストと同じ。タップで解説 */
+.t-mark{
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+
+/* ── ボトムバー ── */
+.bar{
+  position:fixed;bottom:0;left:0;right:0;z-index:100;
+  background:rgba(19,18,16,.95);backdrop-filter:blur(14px);
+  border-top:1px solid var(--border);
+  padding:11px 16px calc(11px + env(safe-area-inset-bottom));
+  display:flex;align-items:center;gap:10px;
+  transform:translateY(100%);
+  transition:transform .22s cubic-bezier(.25,.46,.45,.94);
+}
+.bar.visible{transform:translateY(0)}
+.nav-btn{
+  background:var(--bg3);border:1px solid var(--border);
+  color:var(--text);font-family:var(--sans);font-size:.78rem;
+  padding:8px 16px;border-radius:8px;cursor:pointer;
+  white-space:nowrap;flex-shrink:0;
+}
+.nav-btn:active{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.nav-btn:disabled{opacity:.2;pointer-events:none}
+.bar-mid{flex:1;min-width:0;text-align:center}
+.bar-ep{font-family:var(--sans);font-size:.73rem;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-cnt{font-family:var(--sans);font-size:.6rem;color:var(--dim);margin-top:2px}
+.ico{background:none;border:none;color:var(--dim);font-size:1.1rem;padding:6px 8px;border-radius:8px;cursor:pointer;line-height:1}
+.ico:active{color:var(--accent)}
+
+/* ── シート ── */
+.ov{display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.7)}
+.ov.open{display:flex;align-items:flex-end}
+.sheet{
+  width:100%;max-height:70vh;background:var(--pop);
+  border-radius:16px 16px 0 0;
+  padding:20px 22px calc(28px + env(safe-area-inset-bottom));
+  overflow-y:auto;
+  animation:up .18s cubic-bezier(.25,.46,.45,.94);
+}
+.sheet::before{content:'';display:block;width:32px;height:3px;background:var(--sub);border-radius:2px;margin:0 auto 16px}
+
+/* 語句シート */
+.gl-kind{font-family:var(--sans);font-size:.62rem;letter-spacing:.1em;color:var(--accent);margin-bottom:3px}
+.gl-name{font-size:1rem;letter-spacing:.06em;margin-bottom:10px}
+.gl-desc{font-family:var(--sans);font-size:.85rem;color:var(--text);line-height:1.85}
+.gl-first{font-family:var(--sans);font-size:.65rem;color:var(--dim);margin-top:10px}
+.gl-more{font-family:var(--sans);font-size:.7rem;color:var(--dim);margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-style:italic}
+
+/* TOCシート */
+.toc-head{font-family:var(--sans);font-size:.65rem;letter-spacing:.12em;color:var(--dim);margin-bottom:16px}
+.toc-ch{font-family:var(--sans);font-size:.62rem;letter-spacing:.1em;color:var(--dim);padding:10px 0 4px;border-bottom:1px solid var(--border)}
+.toc-item{
+  display:flex;align-items:baseline;gap:10px;
+  padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);
+  cursor:pointer;font-family:var(--sans);font-size:.82rem;color:var(--text);
+}
+.toc-item.cur{color:var(--accent)}
+.toc-no{font-size:.6rem;color:var(--dim);min-width:2ch;text-align:right;flex-shrink:0}
+
+/* 設定シート */
+.cfg-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.cfg-label{font-family:var(--sans);font-size:.82rem;color:var(--text)}
+.s-row{display:flex;align-items:center;gap:8px}
+.s-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:var(--sans);font-size:.78rem;padding:6px 14px;border-radius:6px;cursor:pointer}
+.s-btn.on,.s-btn:active{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.s-val{font-family:var(--sans);font-size:.8rem;color:var(--text);min-width:3em;text-align:center}
+
+/* toast */
+.toast{
+  position:fixed;bottom:72px;left:50%;
+  transform:translateX(-50%) translateY(6px);
+  background:var(--bg3);border:1px solid var(--border);
+  color:var(--text);font-family:var(--sans);font-size:.74rem;
+  padding:6px 16px;border-radius:16px;opacity:0;pointer-events:none;
+  transition:all .2s;white-space:nowrap;z-index:500;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ローディング */
+.loading{
+  display:flex;align-items:center;justify-content:center;
+  height:60vh;font-family:var(--sans);font-size:.78rem;color:var(--dim);
+  gap:10px;
+}
+.spin{width:16px;height:16px;border:2px solid var(--sub);border-top-color:var(--accent);border-radius:50%;animation:rot .7s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+@keyframes up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-thumb{background:var(--sub);border-radius:2px}
+@media(min-width:600px){.reader-body{padding:48px 40px 180px}}
+</style>
+</head>
+<body>
+
+<!-- 棚 -->
+<div id="shelf-screen">
+  <div class="shelf-title">LIBRARY</div>
+
+  <!-- Nコード入力 -->
+  <div class="add-form">
+    <input class="ncode-input" id="ncode-input" type="text"
+           placeholder="Nコードを入力（例: n9999zz）"
+           autocapitalize="none" autocorrect="off" spellcheck="false"
+           onkeydown="if(event.key==='Enter')submitNcode()">
+    <button class="add-btn" id="add-btn" onclick="submitNcode()">校正開始</button>
+  </div>
+  <div class="add-status" id="add-status"></div>
+
+  <div id="shelf-list"><div class="loading"><div class="spin"></div>読込中...</div></div>
+</div>
+
+<!-- 本文 -->
+<div id="reader-screen">
+  <div class="reader-body">
+    <div id="ep-content"></div>
+  </div>
+</div>
+
+<!-- ボトムバー -->
+<div class="bar" id="bar">
+  <button class="nav-btn" id="btn-prev" onclick="navigate(-1)">‹ 前</button>
+  <div class="bar-mid">
+    <div class="bar-ep" id="bar-ep"></div>
+    <div class="bar-cnt" id="bar-cnt"></div>
+  </div>
+  <div style="display:flex;gap:2px;flex-shrink:0">
+    <button class="ico" onclick="openTOC()"  title="目次">☰</button>
+    <button class="ico" onclick="openCfg()"  title="設定">⚙</button>
+    <button class="ico" onclick="goShelf()"  title="棚">⌂</button>
+  </div>
+  <button class="nav-btn" id="btn-next" onclick="navigate(1)">次 ›</button>
+</div>
+
+<!-- 語句シート -->
+<div class="ov" id="gl-ov" onclick="closeAll()">
+  <div class="sheet" onclick="event.stopPropagation()" id="gl-sheet"></div>
+</div>
+
+<!-- TOC -->
+<div class="ov" id="toc-ov" onclick="closeAll()">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="toc-head" id="toc-title"></div>
+    <div id="toc-list"></div>
+  </div>
+</div>
+
+<!-- 設定 -->
+<div class="ov" id="cfg-ov" onclick="closeAll()">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="cfg-row">
+      <span class="cfg-label">文字サイズ</span>
+      <div class="s-row">
+        <button class="s-btn" onclick="adjFs(-.05)">A－</button>
+        <span class="s-val" id="fs-v">108%</span>
+        <button class="s-btn" onclick="adjFs(+.05)">A＋</button>
+      </div>
+    </div>
+    <div class="cfg-row">
+      <span class="cfg-label">行間</span>
+      <div class="s-row">
+        <button class="s-btn" onclick="adjLh(-.1)">狭</button>
+        <span class="s-val" id="lh-v">205%</span>
+        <button class="s-btn" onclick="adjLh(+.1)">広</button>
+      </div>
+    </div>
+    <div class="cfg-row">
+      <span class="cfg-label">テーマ</span>
+      <div class="s-row">
+        <button class="s-btn on" id="th-dark"  onclick="setTheme('dark')">黒</button>
+        <button class="s-btn"    id="th-sepia" onclick="setTheme('sepia')">茶</button>
+        <button class="s-btn"    id="th-light" onclick="setTheme('light')">白</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════
+// 状態
+// ══════════════════════════════
+let novel = null;   // 現在読んでいる作品データ
+let cur   = 0;      // 現在の話インデックス
+let barVis = false, barTimer = null;
+let fs = 1.08, lh = 2.05;
+
+// ══════════════════════════════
+// 棚（一覧取得）
+// ══════════════════════════════
+let shelfTimer = null;
+
+async function loadShelf() {
+  try {
+    const res  = await fetch('/api/list');
+    const list = await res.json();
+    const el   = document.getElementById('shelf-list');
+    const hasProcessing = list.some(n => n.processing);
+
+    if (!list.length) {
+      el.innerHTML = `<div class="empty-shelf">
+        Nコードを入力して校正を開始してください。<br>
+        NコードはなろうのURLから取得できます:<br>
+        ncode.syosetu.com/<b>n9999zz</b>/
+      </div>`;
+    } else {
+      el.innerHTML = list.map(n => `
+        <div class="novel-card ${n.processing ? 'processing' : ''}"
+             onclick="${n.processing ? '' : `openNovel('${n.ncode}')`}"
+             style="${n.processing ? 'opacity:.5;cursor:default' : ''}">
+          <div class="novel-title">${esc(n.title)}</div>
+          <div class="novel-meta">${n.processing
+            ? '⏳ 校正処理中...'
+            : `${esc(n.author)}　${n.total_episodes}話`
+          }</div>
+        </div>
+      `).join('');
+    }
+
+    // 処理中があれば3秒ごとにリロード
+    clearTimeout(shelfTimer);
+    if (hasProcessing) {
+      shelfTimer = setTimeout(loadShelf, 3000);
+    }
+  } catch(e) {
+    document.getElementById('shelf-list').innerHTML =
+      `<div class="empty-shelf">読み込みエラー: ${esc(e.message)}</div>`;
+  }
+}
+
+// ══════════════════════════════
+// Nコード入力 → 校正開始
+// ══════════════════════════════
+async function submitNcode() {
+  const input  = document.getElementById('ncode-input');
+  const btn    = document.getElementById('add-btn');
+  const status = document.getElementById('add-status');
+  const ncode  = input.value.trim().toLowerCase();
+
+  if (!ncode) return;
+  if (!/^n[0-9a-z]+$/.test(ncode)) {
+    status.textContent = '⚠ Nコードの形式が正しくありません（例: n9999zz）';
+    return;
+  }
+
+  btn.disabled = true;
+  status.textContent = '送信中...';
+
+  try {
+    const res  = await fetch('/api/process', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ncode }),
+    });
+    const data = await res.json();
+
+    if (data.status === 'already_running') {
+      status.textContent = `⏳ ${ncode} はすでに処理中です`;
+    } else if (data.status === 'started') {
+      status.textContent = `✅ ${ncode} の校正を開始しました（完了まで数分〜数十分かかります）`;
+      input.value = '';
+      loadShelf();
+    } else {
+      status.textContent = `エラー: ${data.error || '不明'}`;
+    }
+  } catch(e) {
+    status.textContent = `エラー: ${e.message}`;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ══════════════════════════════
+// 作品を開く
+// ══════════════════════════════
+async function openNovel(ncode) {
+  document.getElementById('ep-content').innerHTML =
+    '<div class="loading"><div class="spin"></div>読込中...</div>';
+  document.getElementById('shelf-screen').style.display = 'none';
+  document.getElementById('reader-screen').style.display = 'block';
+
+  const res  = await fetch(`/api/novel/${ncode}`);
+  novel      = await res.json();
+
+  // しおり復元
+  const saved = localStorage.getItem(`bm_${ncode}`);
+  cur = saved ? Math.min(parseInt(saved), novel.episodes.length - 1) : 0;
+
+  render();
+}
+
+function goShelf() {
+  if (novel) {
+    // しおり保存
+    localStorage.setItem(`bm_${novel.ncode}`, cur);
+  }
+  novel = null;
+  document.getElementById('reader-screen').style.display = 'none';
+  document.getElementById('shelf-screen').style.display  = 'block';
+  hideBar();
+}
+
+// ══════════════════════════════
+// レンダー
+// ══════════════════════════════
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
+function markGlossary(html) {
+  if (!novel?.glossary) return html;
+  const keys = Object.keys(novel.glossary).sort((a,b) => b.length - a.length);
+  for (const k of keys) {
+    const ek = esc(k);
+    html = html.split(ek).join(
+      `<span class="t-mark" onclick="showGl(${JSON.stringify(k)})">${ek}</span>`
+    );
+  }
+  return html;
+}
+
+function bodyToHtml(body) {
+  let html = '';
+  for (const line of body.split('\n')) {
+    if (!line.trim()) { html += '<span class="bl"></span>'; continue; }
+    let s = esc(line);
+    s = markGlossary(s);
+    const dl = line.trimStart().startsWith('「') || line.trimStart().startsWith('『');
+    html += `<p class="${dl?'dl':''}">${s}</p>`;
+  }
+  return html;
+}
+
+function render() {
+  const ep    = novel.episodes[cur];
+  const total = novel.episodes.length;
+
+  // 既読記録（ネタバレ制御用）
+  const rdKey = `rd_${novel.ncode}`;
+  const rdMax = Math.max(parseInt(localStorage.getItem(rdKey)||'0'), ep.episode_no);
+  localStorage.setItem(rdKey, rdMax);
+
+  const posted = ep.posted_at
+    ? new Date(ep.posted_at).toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric'})
+    : '';
+
+  document.getElementById('ep-content').innerHTML = `
+    ${ep.chapter ? `<div class="ep-chapter">${esc(ep.chapter)}</div>` : ''}
+    <div class="ep-title">第${ep.episode_no}話　${esc(ep.title)}</div>
+    <div class="ep-meta">${posted}</div>
+    <div class="novel-body">${bodyToHtml(ep.body)}</div>
+  `;
+
+  document.getElementById('bar-ep').textContent  = ep.title;
+  document.getElementById('bar-cnt').textContent = `${ep.episode_no} / ${total}`;
+  document.getElementById('btn-prev').disabled = cur === 0;
+  document.getElementById('btn-next').disabled = cur === total - 1;
+  document.title = `${ep.title} — ${novel.meta.title}`;
+
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+// ══════════════════════════════
+// ナビ
+// ══════════════════════════════
+function navigate(d) {
+  const n = cur + d;
+  if (!novel || n < 0 || n >= novel.episodes.length) return;
+  cur = n;
+  render();
+  hideBar();
+}
+
+// ══════════════════════════════
+// バー表示
+// ══════════════════════════════
+function showBar(){ barVis=true; document.getElementById('bar').classList.add('visible'); clearTimeout(barTimer); barTimer=setTimeout(hideBar,4000) }
+function hideBar(){ barVis=false; document.getElementById('bar').classList.remove('visible') }
+function toggleBar(){ barVis ? hideBar() : showBar() }
+
+document.getElementById('reader-screen').addEventListener('click', e => {
+  if (e.target.classList.contains('t-mark')) return;
+  if (e.target.closest('.bar')) return;
+  toggleBar();
+});
+
+// ══════════════════════════════
+// 語句シート（ネタバレ制御付き）
+// ══════════════════════════════
+function showGl(term) {
+  const g = novel?.glossary?.[term];
+  if (!g) return;
+
+  // 既読最大話番号
+  const rdMax = parseInt(localStorage.getItem(`rd_${novel.ncode}`) || '0');
+  const epKeys = Object.keys(g.by_ep).map(Number).filter(k => k <= rdMax);
+
+  let inner = '';
+  if (!epKeys.length) {
+    inner = `<div class="gl-kind">固有名詞</div>
+             <div class="gl-name">${esc(term)}</div>
+             <div class="gl-desc" style="color:var(--dim)">まだ詳細不明です。</div>`;
+  } else {
+    const best  = Math.max(...epKeys);
+    const entry = g.by_ep[String(best)];
+    const hasMore = Object.keys(g.by_ep).map(Number).some(k => k > rdMax);
+    inner = `
+      <div class="gl-kind">${esc(entry.kind || '固有名詞')}</div>
+      <div class="gl-name">${esc(term)}</div>
+      <div class="gl-desc">${esc(entry.desc || '')}</div>
+      <div class="gl-first">初出：第${g.first_ep}話</div>
+      ${hasMore ? '<div class="gl-more">📖 読み進めると解説が更新されます</div>' : ''}
+    `;
+  }
+
+  document.getElementById('gl-sheet').innerHTML = inner;
+  document.getElementById('gl-ov').classList.add('open');
+  hideBar();
+}
+
+// ══════════════════════════════
+// TOC
+// ══════════════════════════════
+function openTOC() {
+  if (!novel) return;
+  document.getElementById('toc-title').textContent = novel.meta.title;
+  let html = '', lastCh = '';
+  novel.episodes.forEach((ep, i) => {
+    if (ep.chapter && ep.chapter !== lastCh) {
+      html += `<div class="toc-ch">${esc(ep.chapter)}</div>`;
+      lastCh = ep.chapter;
+    }
+    html += `<div class="toc-item ${i===cur?'cur':''}" onclick="jumpTo(${i})">
+      <span class="toc-no">${ep.episode_no}</span>
+      <span>${esc(ep.title)}</span>
+    </div>`;
+  });
+  document.getElementById('toc-list').innerHTML = html;
+  document.getElementById('toc-ov').classList.add('open');
+  hideBar();
+}
+
+function jumpTo(i) { cur=i; render(); closeAll(); }
+
+// ══════════════════════════════
+// 設定
+// ══════════════════════════════
+function openCfg() { document.getElementById('cfg-ov').classList.add('open'); hideBar(); }
+function closeAll() { document.querySelectorAll('.ov').forEach(o=>o.classList.remove('open')); }
+
+function adjFs(d){ fs=Math.max(.8,Math.min(1.6,fs+d)); document.documentElement.style.setProperty('--fs',fs+'rem'); document.getElementById('fs-v').textContent=Math.round(fs*100)+'%' }
+function adjLh(d){ lh=Math.max(1.4,Math.min(3.0,lh+d)); document.documentElement.style.setProperty('--lh',lh); document.getElementById('lh-v').textContent=Math.round(lh*100)+'%' }
+
+const TH = {
+  dark:  {'--bg':'#131210','--bg2':'#1c1a17','--bg3':'#242220','--text':'#ccc8c0','--dim':'#625e58','--sub':'#3a3830','--border':'rgba(255,255,255,.07)','--pop':'#1c1a17'},
+  sepia: {'--bg':'#1a1510','--bg2':'#221a12','--bg3':'#2a2018','--text':'#ddd0b0','--dim':'#7a6a50','--sub':'#4a3a28','--border':'rgba(255,255,255,.07)','--pop':'#221a12'},
+  light: {'--bg':'#f2ede4','--bg2':'#ebe5dc','--bg3':'#e2dcd2','--text':'#2a2820','--dim':'#8a8478','--sub':'#b8b2a8','--border':'rgba(0,0,0,.1)','--pop':'#ebe5dc'},
+};
+function setTheme(t) {
+  const R = document.documentElement.style;
+  Object.entries(TH[t]).forEach(([k,v])=>R.setProperty(k,v));
+  ['dark','sepia','light'].forEach(k=>document.getElementById('th-'+k).classList.toggle('on',k===t));
+}
+
+// ══════════════════════════════
+// スワイプ
+// ══════════════════════════════
+let _tx=0,_ty=0;
+document.addEventListener('touchstart',e=>{_tx=e.touches[0].clientX;_ty=e.touches[0].clientY},{passive:true});
+document.addEventListener('touchend',e=>{
+  if(document.querySelector('.ov.open')) return;
+  const dx=e.changedTouches[0].clientX-_tx, dy=Math.abs(e.changedTouches[0].clientY-_ty);
+  if(Math.abs(dx)>72&&dy<50) navigate(dx<0?1:-1);
+},{passive:true});
+
+// toast
+let _tt;
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('show'),1800)}
+
+// ══════════════════════════════
+// 起動
+// ══════════════════════════════
+loadShelf();
+</script>
+</body>
+</html>
